@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mouse Hunt — Co-op</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>Mouse Hunt</h1>
+      <p class="tagline">Two players, one grid. Corner the Mouse before it slips away.</p>
+    </header>
+
+    <section class="room-panel" id="roomPanel">
+      <div class="card">
+        <h2>Play on Two Devices</h2>
+        <p class="room-subtitle">One device creates a room. The other joins using the 4-digit passcode.</p>
+
+        <div class="room-actions">
+          <div class="room-join">
+            <label class="room-label" for="gridTypeSelect">Grid</label>
+            <select id="gridTypeSelect" class="room-input" aria-label="Grid type">
+              <option value="square" selected>Square (5x5)</option>
+              <option value="hex">Hexagon (radius 2)</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn-secondary" id="createRoomBtn">Create room</button>
+
+          <div class="room-join">
+            <label class="room-label" for="passcodeInput">Passcode</label>
+            <input
+              id="passcodeInput"
+              class="room-input"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="4"
+              placeholder="1234"
+            />
+            <button type="button" class="btn-secondary" id="joinRoomBtn">Join</button>
+          </div>
+        </div>
+
+        <div class="room-status" id="roomStatus" aria-live="polite"></div>
+        <div class="room-code-row" id="roomCodeRow">
+          Room code: <span id="roomCode"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="status-panel" aria-live="polite">
+      <div class="status-room" id="statusRoom" aria-label="Room occupancy"></div>
+      <div class="status-main" id="statusMain">Loading…</div>
+      <div class="status-hint" id="statusHint"></div>
+    </section>
+
+    <div class="layout">
+      <div class="board-wrap">
+        <div class="grid" id="grid" role="grid" aria-label="hunt grid"></div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="card rules-card">
+          <h2>Rules</h2>
+          <p class="rules-short">
+            P1: 3 cheese (first). P2: 3 flags. Mouse runs to cheese; flags block. Flag on Mouse = win.
+            After the Mouse eats cheese, it stays on the board for two turns: one while the Mouse is still on that square, then it disappears once the Mouse moves away.
+            After 6 pieces, both guess one square — only a matching pick on the Mouse wins.
+          </p>
+        </div>
+        <div class="card players">
+          <div class="player player-a" id="p1Card">
+            <span class="player-label">Player 1</span>
+            <span class="player-meta" id="p1Meta">Cheese left: 3</span>
+          </div>
+          <div class="player player-b" id="p2Card">
+            <span class="player-label">Player 2</span>
+            <span class="player-meta" id="p2Meta">Flags left: 3</span>
+          </div>
+        </div>
+        <button type="button" class="btn-secondary" id="newGameBtn">New game</button>
+      </aside>
+    </div>
+  </div>
+  <script src="mp-client.js"></script>
+</body>
+</html>
