@@ -1,4 +1,4 @@
-const MAX = 3;
+const { occupied, piecesLeft } = globalThis.MouseHuntLogic;
 
 let ws,
   myPlayer,
@@ -22,21 +22,7 @@ function teardownSocket(s) {
 
 const boardLive = () => state && playersJoined >= 2;
 
-function nFlags2(s) {
-  let n = 0;
-  for (const v of Object.values(s.flags || {})) if (v === 2) n++;
-  return n;
-}
-const nCheese = (s) =>
-  typeof s.cheesePlaced === "number" ? s.cheesePlaced : Object.keys(s.cheeses || {}).length;
-const occupied = (s, i) => {
-  const k = String(i);
-  return (
-    !!(s.flags && Object.prototype.hasOwnProperty.call(s.flags, k)) ||
-    !!(s.cheeses && Object.prototype.hasOwnProperty.call(s.cheeses, k))
-  );
-};
-const left = (s, p) => (p === 1 ? MAX - nCheese(s) : MAX - nFlags2(s));
+const left = (s, p) => piecesLeft(s, p);
 
 function cells() {
   const g = $("grid");
@@ -169,8 +155,8 @@ function render() {
     }
   });
 
-  $("p1Meta").textContent = `Cheese left: ${Math.max(0, left(state, 1))}`;
-  $("p2Meta").textContent = `Flags left: ${Math.max(0, left(state, 2))}`;
+  $("p1Meta").textContent = `Cheese left: ${Math.max(0, piecesLeft(state, 1))}`;
+  $("p2Meta").textContent = `Flags left: ${Math.max(0, piecesLeft(state, 2))}`;
   const live = boardLive();
   $("p1Card").classList.toggle(
     "active",
