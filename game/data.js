@@ -66,8 +66,9 @@ const exports_ = {
   squareCells,
 };
 
+if (typeof globalThis !== "undefined") {
+  globalThis.MouseHuntData = exports_;
+}
 if (typeof module !== "undefined" && module.exports) {
   module.exports = exports_;
-} else if (typeof globalThis !== "undefined") {
-  globalThis.MouseHuntData = exports_;
 }

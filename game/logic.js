@@ -1,9 +1,10 @@
+(function (global) {
 "use strict";
 
 const data =
-  typeof require !== "undefined"
-    ? require("./data")
-    : globalThis.MouseHuntData;
+  globalThis.MouseHuntData ??
+  (typeof require !== "undefined" ? require("./data") : undefined);
+if (!data) throw new Error("Mouse Hunt: load game/data.js before game/logic.js");
 
 const {
   SQUARE_SIZE,
@@ -14,6 +15,9 @@ const {
   hexNeighbors,
   squareCells,
 } = data;
+
+const MAX_CHEESE = FLAGS_PER_PLAYER;
+const MAX_FLAGS = FLAGS_PER_PLAYER;
 
 const idxToRC = (i) => [Math.floor(i / SQUARE_SIZE), i % SQUARE_SIZE];
 const rcToIdx = (r, c) => r * SQUARE_SIZE + c;
@@ -38,7 +42,7 @@ function mouseStr(s) {
 function logBoard(s) {
   const gt = s.gridType || "square";
   const fl = Object.entries(s.flags || {})
-    .filter(([, p]) => p === 2)
+    .filter(([, p]) => p)
     .map(([i]) => cellLabel(gt, Number(i)))
     .sort();
   const ch = Object.keys(s.cheeses || {}).map(Number);
@@ -52,10 +56,6 @@ const manhattan = (a, b) => {
   const [br, bc] = idxToRC(b);
   return Math.abs(ar - br) + Math.abs(ac - bc);
 };
-
-function nCheese(s) {
-  return Object.keys(s.cheeses || {}).length;
-}
 
 function hasFlag(s, i) {
   return Object.prototype.hasOwnProperty.call(s.flags || {}, String(i));
@@ -83,23 +83,26 @@ function squareNeighbors(i) {
   return o;
 }
 
-function countP2(s) {
+function countFlags(s) {
   let n = 0;
-  for (const v of Object.values(s.flags || {})) if (v === 2) n++;
+  for (const v of Object.values(s.flags || {})) if (v) n++;
   return n;
 }
 
-function countFlags2(s) {
-  return countP2(s);
-}
-
 function cheesePlaced(s) {
-  return typeof s.cheesePlaced === "number" ? s.cheesePlaced : nCheese(s);
+  return typeof s.cheesePlaced === "number" ? s.cheesePlaced : Object.keys(s.cheeses || {}).length;
 }
 
-function piecesLeft(s, player) {
-  if (player === 1) return FLAGS_PER_PLAYER - cheesePlaced(s);
-  return FLAGS_PER_PLAYER - countP2(s);
+function cheeseLeft(s) {
+  return MAX_CHEESE - cheesePlaced(s);
+}
+
+function flagsLeft(s) {
+  return MAX_FLAGS - countFlags(s);
+}
+
+function allPiecesPlaced(s) {
+  return cheesePlaced(s) >= MAX_CHEESE && countFlags(s) >= MAX_FLAGS;
 }
 
 function gridNeighbors(gt, i) {
@@ -122,8 +125,7 @@ function makeState(gridType = "square") {
   const gridCells = gt === "hex" ? hexCells : squareCells;
   const nCells = gridCells.length;
   return {
-    phase: "flagging",
-    currentPlayer: 1,
+    phase: "playing",
     gridType: gt,
     nCells,
     gridCells,
@@ -132,9 +134,6 @@ function makeState(gridType = "square") {
     flags: {},
     cheeses: {},
     cheeseEating: {},
-    guessPlayerTurn: 1,
-    guessP1: null,
-    guessP2: null,
   };
 }
 
@@ -187,89 +186,64 @@ function eatCheese(s) {
   s.cheeseEating = eat;
 }
 
-function canPlace(state, player, index) {
-  if (!state || state.phase !== "flagging" || player !== state.currentPlayer) return false;
+function canPlace(state, action, index) {
+  if (!state || state.phase !== "playing") return false;
+  if (action !== "cheese" && action !== "flag") return false;
   if (!Number.isInteger(index) || index < 0 || index >= state.nCells) return false;
   if (blocked(state, index)) return false;
-  if (player === 1) return (state.cheesePlaced || 0) < FLAGS_PER_PLAYER;
-  return countP2(state) < FLAGS_PER_PLAYER;
+  if (action === "cheese") return cheeseLeft(state) > 0;
+  return flagsLeft(state) > 0;
 }
 
-function applyPlace(state, player, index) {
-  if (!canPlace(state, player, index)) return null;
+function applyPlace(state, action, index) {
+  if (!canPlace(state, action, index)) return null;
 
-  if (player === 1) {
+  if (action === "cheese") {
     state.cheesePlaced = (state.cheesePlaced || 0) + 1;
     state.cheeses = { ...state.cheeses };
     state.cheeses[index] = true;
   } else {
-    state.flags[index] = 2;
+    state.flags = { ...state.flags };
+    state.flags[index] = true;
     if (index === state.mouseIndex) {
       state.phase = "won";
-      return { event: "win", index, player };
+      return { event: "win", action, index };
     }
   }
 
   moveMouse(state);
   eatCheese(state);
 
-  const done1 = (state.cheesePlaced || 0) >= FLAGS_PER_PLAYER;
-  const done2 = countP2(state) >= FLAGS_PER_PLAYER;
-  if ((state.cheesePlaced || 0) + countP2(state) >= FLAGS_PER_PLAYER * 2 && done1 && done2) {
-    state.phase = "guessing";
-    state.guessPlayerTurn = 1;
-    state.guessP1 = null;
-    state.guessP2 = null;
-  } else state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
-
-  return { event: "place", index, player };
-}
-
-function canGuess(state, player, index) {
-  if (!state || state.phase !== "guessing" || player !== state.guessPlayerTurn) return false;
-  if (!Number.isInteger(index) || index < 0 || index >= state.nCells) return false;
-  if (player === 1) return state.guessP1 === null;
-  return state.guessP2 === null;
-}
-
-function applyGuess(state, player, index) {
-  if (!canGuess(state, player, index)) return null;
-
-  if (player === 1) {
-    state.guessP1 = index;
-    state.guessPlayerTurn = 2;
-    return { event: "guess1", index, player };
+  if (allPiecesPlaced(state)) {
+    state.phase = "lost";
+    return { event: "lost", action, index };
   }
-  if (state.guessP2 !== null) return null;
-  state.guessP2 = index;
-  state.phase =
-    state.guessP1 === state.guessP2 && state.guessP1 === state.mouseIndex ? "won" : "lost";
-  return { event: "guess2", index, player, phase: state.phase };
+
+  return { event: "place", action, index };
 }
 
 const exports_ = {
   FLAGS_PER_PLAYER,
+  MAX_CHEESE,
+  MAX_FLAGS,
   makeState,
   moveMouse,
   eatCheese,
   applyPlace,
-  applyGuess,
   canPlace,
-  canGuess,
   blocked,
   occupied,
-  countP2,
-  countFlags2,
-  nCheese,
+  cheeseLeft,
+  flagsLeft,
   cheesePlaced,
-  piecesLeft,
+  countFlags,
   mouseStr,
   logBoard,
   cellLabel,
 };
 
+global.MouseHuntLogic = exports_;
 if (typeof module !== "undefined" && module.exports) {
   module.exports = exports_;
-} else if (typeof globalThis !== "undefined") {
-  globalThis.MouseHuntLogic = exports_;
 }
+})(typeof globalThis !== "undefined" ? globalThis : global);
