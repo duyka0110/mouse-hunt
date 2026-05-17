@@ -92,7 +92,98 @@ function cells() {
     g.style.height = "";
   }
 
-  requestAnimationFrame(layoutEdges);
+  requestAnimationFrame(() => {
+    layoutEdges();
+    layoutMousePath();
+  });
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function cellCenter(el, wr) {
+  const r = el.getBoundingClientRect();
+  return {
+    x: (r.left + r.right) / 2 - wr.left,
+    y: (r.top + r.bottom) / 2 - wr.top,
+  };
+}
+
+function layoutMousePath() {
+  const layer = $("pathLayer");
+  layer.innerHTML = "";
+  if (!state || (state.phase !== "won" && state.phase !== "lost")) return;
+
+  const path = state.mousePath;
+  if (!path?.length) return;
+
+  const wrap = $("boardWrap");
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  if (!w || !h) return;
+
+  layer.setAttribute("width", String(w));
+  layer.setAttribute("height", String(h));
+  layer.setAttribute("viewBox", `0 0 ${w} ${h}`);
+
+  const wr = wrap.getBoundingClientRect();
+  const cellEls = document.querySelectorAll(".cell");
+  const pts = [];
+  for (const idx of path) {
+    const el = cellEls[idx];
+    if (!el) continue;
+    pts.push(cellCenter(el, wr));
+  }
+  if (!pts.length) return;
+
+  const defs = document.createElementNS(SVG_NS, "defs");
+  const mkMarker = (id, fill) => {
+    const m = document.createElementNS(SVG_NS, "marker");
+    m.setAttribute("id", id);
+    m.setAttribute("viewBox", "0 0 10 10");
+    m.setAttribute("refX", "5");
+    m.setAttribute("refY", "5");
+    m.setAttribute("markerWidth", "7");
+    m.setAttribute("markerHeight", "7");
+    m.setAttribute("orient", "auto");
+    const arrow = document.createElementNS(SVG_NS, "path");
+    arrow.setAttribute("d", "M0,1 L9,5 L0,9 Z");
+    arrow.setAttribute("fill", fill);
+    m.appendChild(arrow);
+    return m;
+  };
+  defs.appendChild(mkMarker("mouse-path-start", "#7dd3c0"));
+  defs.appendChild(mkMarker("mouse-path-end", "#f97316"));
+  layer.appendChild(defs);
+
+  if (pts.length >= 2) {
+    const line = document.createElementNS(SVG_NS, "polyline");
+    line.setAttribute(
+      "points",
+      pts.map((p) => `${p.x},${p.y}`).join(" ")
+    );
+    line.setAttribute("fill", "none");
+    line.setAttribute("stroke", "rgba(125, 211, 192, 0.55)");
+    line.setAttribute("stroke-width", "3");
+    line.setAttribute("stroke-linecap", "round");
+    line.setAttribute("stroke-linejoin", "round");
+    line.setAttribute("marker-start", "url(#mouse-path-start)");
+    line.setAttribute("marker-end", "url(#mouse-path-end)");
+    layer.appendChild(line);
+    return;
+  }
+
+  const placeArrow = (pt, fill) => {
+    const g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
+    const arrow = document.createElementNS(SVG_NS, "path");
+    arrow.setAttribute("d", "M-4.5,-4 L4.5,0 L-4.5,4 Z");
+    arrow.setAttribute("fill", fill);
+    g.appendChild(arrow);
+    layer.appendChild(g);
+  };
+
+  placeArrow({ x: pts[0].x - 10, y: pts[0].y }, "#7dd3c0");
+  placeArrow({ x: pts[0].x + 10, y: pts[0].y }, "#f97316");
 }
 
 function layoutEdges() {
@@ -321,6 +412,7 @@ function render() {
   updateModeChrome();
   renderBoardCells();
   layoutEdges();
+  requestAnimationFrame(layoutMousePath);
 
   if (!state) {
     $("playerMeta").textContent = "—";
@@ -337,7 +429,8 @@ function render() {
     renderRoguePanel();
     const moves = state.mouseMoves || 0;
     const cheeseLeftN = Math.max(0, Rogue.ROGUE_MAX_CHEESE - (state.cheesePlacedCount || 0));
-    $("playerMeta").textContent = `Mouse moves: ${moves}/${Rogue.ROGUE_MAX_MOUSE_MOVES} · Cheese to place: ${cheeseLeftN}`;
+    const trapsLeftN = Math.max(0, Rogue.trapsLeft(state));
+    $("playerMeta").textContent = `Mouse moves: ${moves}/${Rogue.ROGUE_MAX_MOUSE_MOVES} · Cheese: ${cheeseLeftN} · Traps: ${trapsLeftN}`;
     $("playerCard").classList.toggle(
       "active",
       ["choosing", "placing", "playing"].includes(state.phase) && state.phase !== "won" && state.phase !== "lost"

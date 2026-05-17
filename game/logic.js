@@ -124,12 +124,14 @@ function makeState(gridType = "square") {
   const gt = VALID_GRID_TYPES.has(gridType) ? gridType : "square";
   const gridCells = gt === "hex" ? hexCells : squareCells;
   const nCells = gridCells.length;
+  const mouseIndex = Math.floor(Math.random() * nCells);
   return {
     phase: "playing",
     gridType: gt,
     nCells,
     gridCells,
-    mouseIndex: Math.floor(Math.random() * nCells),
+    mouseIndex,
+    mousePath: [mouseIndex],
     cheesePlaced: 0,
     flags: {},
     cheeses: {},
@@ -211,8 +213,12 @@ function applyPlace(state, action, index) {
     }
   }
 
+  const prevMouse = state.mouseIndex;
   moveMouse(state);
   eatCheese(state);
+  if (state.mouseIndex !== prevMouse) {
+    state.mousePath = [...(state.mousePath || [prevMouse]), state.mouseIndex];
+  }
 
   if (allPiecesPlaced(state)) {
     state.phase = "lost";

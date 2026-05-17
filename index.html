@@ -38,6 +38,7 @@
     <div class="play-area" id="playArea">
       <div class="board-wrap" id="boardWrap">
         <div class="grid" id="grid" role="grid" aria-label="hunt grid"></div>
+        <svg class="path-layer" id="pathLayer" aria-hidden="true"></svg>
         <div class="edge-layer" id="edgeLayer" aria-hidden="true"></div>
         <div class="board-overlay hidden" id="boardOverlay">
           <p class="board-overlay-text" id="boardOverlayText"></p>
@@ -66,7 +67,7 @@
       <p class="rules-short rogue-only hidden" id="rulesRogue">
         Rogue: each turn you get two random offers (Cheese, Wall, Flag, Trap, or Pass). Place on the board or Pass;
         the Mouse moves after each choice. Walls go on edges between tiles. Traps win when the Mouse steps on them;
-        flags win if placed on the Mouse. Only 3 cheese ever—when all are eaten, you lose. After 10 mouse moves,
+        flags win if placed on the Mouse. Only 3 cheese and 1 trap per game—when all cheese is eaten, you lose. After 10 mouse moves,
         finish the current pair of choices then you lose.
       </p>
     </section>

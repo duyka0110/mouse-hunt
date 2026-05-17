@@ -82,6 +82,7 @@ for (let i = 0; i < hexCells.length; i++) {
 
 const ROGUE_MAX_MOUSE_MOVES = 10;
 const ROGUE_MAX_CHEESE = 3;
+const ROGUE_MAX_TRAPS = 1;
 const VALID_GAME_MODES = new Set(["cheeseflag", "rogue"]);
 
 const exports_ = {
@@ -93,6 +94,7 @@ const exports_ = {
   VALID_GAME_MODES,
   ROGUE_MAX_MOUSE_MOVES,
   ROGUE_MAX_CHEESE,
+  ROGUE_MAX_TRAPS,
   hexCells,
   hexCube,
   hexNeighbors,

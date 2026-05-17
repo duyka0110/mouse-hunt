@@ -9,6 +9,7 @@
     VALID_GRID_TYPES,
     ROGUE_MAX_MOUSE_MOVES,
     ROGUE_MAX_CHEESE,
+    ROGUE_MAX_TRAPS,
     hexCells,
     squareCells,
     squareEdges,
@@ -33,6 +34,16 @@
 
   function hasTrap(s, i) {
     return !!(s.traps && s.traps[i]);
+  }
+
+  function countTraps(s) {
+    let n = 0;
+    for (const v of Object.values(s.traps || {})) if (v) n++;
+    return n;
+  }
+
+  function trapsLeft(s) {
+    return ROGUE_MAX_TRAPS - countTraps(s);
   }
 
   function tileOccupied(s, i) {
@@ -63,8 +74,9 @@
       case "cheese":
         return (s.cheesePlacedCount || 0) < ROGUE_MAX_CHEESE && emptyTileExists(s);
       case "flag":
-      case "trap":
         return emptyTileExists(s);
+      case "trap":
+        return trapsLeft(s) > 0 && emptyTileExists(s);
       case "wall":
         return freeEdgeExists(s);
       case "pass":
@@ -88,13 +100,15 @@
   function makeRogueState(gridType = "square") {
     const gt = VALID_GRID_TYPES.has(gridType) ? gridType : "square";
     const gridCells = gt === "hex" ? hexCells : squareCells;
+    const mouseIndex = Math.floor(Math.random() * gridCells.length);
     return {
       gameMode: "rogue",
       phase: "choosing",
       gridType: gt,
       nCells: gridCells.length,
       gridCells,
-      mouseIndex: Math.floor(Math.random() * gridCells.length),
+      mouseIndex,
+      mousePath: [mouseIndex],
       cheesePlacedCount: 0,
       cheeses: {},
       cheeseEating: {},
@@ -117,7 +131,8 @@
     if (!Number.isInteger(index) || index < 0 || index >= s.nCells) return false;
     if (tileOccupied(s, index)) return false;
     if (action === "cheese") return (s.cheesePlacedCount || 0) < ROGUE_MAX_CHEESE;
-    if (action === "flag" || action === "trap") return true;
+    if (action === "flag") return true;
+    if (action === "trap") return trapsLeft(s) > 0;
     return false;
   }
 
@@ -164,6 +179,9 @@
     const prev = s.mouseIndex;
     moveMouseTowardCheese(s);
     eatCheese(s);
+    if (s.mouseIndex !== prev) {
+      s.mousePath = [...(s.mousePath || [prev]), s.mouseIndex];
+    }
     s.mouseMoves = (s.mouseMoves || 0) + 1;
 
     if (hasTrap(s, s.mouseIndex)) {
@@ -243,6 +261,9 @@
   global.MouseHuntRogue = {
     ROGUE_MAX_MOUSE_MOVES,
     ROGUE_MAX_CHEESE,
+    ROGUE_MAX_TRAPS,
+    trapsLeft,
+    countTraps,
     OFFER_TYPES,
     makeRogueState,
     pickOffers,
