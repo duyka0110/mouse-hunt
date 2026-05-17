@@ -10,11 +10,16 @@
   <div class="app">
     <header class="header">
       <h1>Mouse Hunt</h1>
-      <p class="tagline">Place cheese and flags. Corner the Mouse before it slips away.</p>
+      <p class="tagline">Corner the Mouse before it slips away.</p>
     </header>
 
     <section class="action-panel card" id="actionPanel">
       <div class="action-row">
+        <label class="start-label" for="gameModeSelect">Mode</label>
+        <select id="gameModeSelect" class="start-input" aria-label="Game mode">
+          <option value="cheeseflag" selected>CheeseFlag</option>
+          <option value="rogue">Rogue</option>
+        </select>
         <label class="start-label" for="gridTypeSelect">Grid</label>
         <select id="gridTypeSelect" class="start-input" aria-label="Grid type">
           <option value="square" selected>Square (5×5)</option>
@@ -30,33 +35,46 @@
       <div class="status-hint" id="statusHint"></div>
     </section>
 
-    <div class="play-area">
-      <div class="board-wrap">
+    <div class="play-area" id="playArea">
+      <div class="board-wrap" id="boardWrap">
         <div class="grid" id="grid" role="grid" aria-label="hunt grid"></div>
+        <div class="edge-layer" id="edgeLayer" aria-hidden="true"></div>
+        <div class="board-overlay hidden" id="boardOverlay">
+          <p class="board-overlay-text" id="boardOverlayText"></p>
+        </div>
       </div>
 
       <div class="card player-panel" id="playerCard">
         <span class="player-label">Your turn</span>
         <span class="player-meta" id="playerMeta">—</span>
-        <div class="tool-toggle" role="group" aria-label="Placement type">
+        <div class="tool-toggle cf-only" id="cfTools" role="group" aria-label="Placement type">
           <button type="button" class="tool-btn active" id="toolCheese" aria-pressed="true">🧀 Cheese</button>
           <button type="button" class="tool-btn" id="toolFlag" aria-pressed="false">⚑ Flag</button>
         </div>
+        <p class="rogue-selection rogue-only hidden" id="rogueSelection"></p>
+        <p class="rogue-history rogue-only hidden" id="rogueHistory"></p>
       </div>
     </div>
 
     <section class="card rules-card">
       <h2>Rules</h2>
-      <p class="rules-short">
-        Place up to 3 cheese and 3 flags on any empty squares, in any order.
-        The Mouse runs toward cheese; flags block its path. A flag on the Mouse wins instantly.
-        After the Mouse bites cheese, it stays for one more turn on that square, then vanishes when the Mouse leaves.
+      <p class="rules-short cf-only" id="rulesCheeseFlag">
+        CheeseFlag: place up to 3 cheese and 3 flags in any order. The Mouse runs toward cheese; flags block.
+        A flag on the Mouse wins. After a bite, cheese lingers one turn on that square, then vanishes when the Mouse leaves.
         If you use all 6 pieces without catching the Mouse, it escapes.
+      </p>
+      <p class="rules-short rogue-only hidden" id="rulesRogue">
+        Rogue: each turn you get two random offers (Cheese, Wall, Flag, Trap, or Pass). Place on the board or Pass;
+        the Mouse moves after each choice. Walls go on edges between tiles. Traps win when the Mouse steps on them;
+        flags win if placed on the Mouse. Only 3 cheese ever—when all are eaten, you lose. After 10 mouse moves,
+        finish the current pair of choices then you lose.
       </p>
     </section>
   </div>
   <script src="game/data.js"></script>
+  <script src="game/shared.js"></script>
   <script src="game/logic.js"></script>
+  <script src="game/rogue.js"></script>
   <script src="client.js"></script>
 </body>
 </html>

@@ -54,16 +54,52 @@ const squareCells = Array.from({ length: SQUARE_N }, (_, i) => ({
   c: i % SQUARE_SIZE,
 }));
 
+function edgeKey(a, b) {
+  return a < b ? `${a}_${b}` : `${b}_${a}`;
+}
+
+const squareEdges = [];
+for (let r = 0; r < SQUARE_SIZE; r++) {
+  for (let c = 0; c < SQUARE_SIZE; c++) {
+    const i = r * SQUARE_SIZE + c;
+    if (c < SQUARE_SIZE - 1) {
+      const j = i + 1;
+      squareEdges.push({ id: edgeKey(i, j), a: i, b: j, dir: "h" });
+    }
+    if (r < SQUARE_SIZE - 1) {
+      const j = i + SQUARE_SIZE;
+      squareEdges.push({ id: edgeKey(i, j), a: i, b: j, dir: "v" });
+    }
+  }
+}
+
+const hexEdges = [];
+for (let i = 0; i < hexCells.length; i++) {
+  for (const j of hexNeighbors[i]) {
+    if (i < j) hexEdges.push({ id: edgeKey(i, j), a: i, b: j });
+  }
+}
+
+const ROGUE_MAX_MOUSE_MOVES = 10;
+const ROGUE_MAX_CHEESE = 3;
+const VALID_GAME_MODES = new Set(["cheeseflag", "rogue"]);
+
 const exports_ = {
   SQUARE_SIZE,
   FLAGS_PER_PLAYER,
   SQUARE_N,
   HEX_R,
   VALID_GRID_TYPES,
+  VALID_GAME_MODES,
+  ROGUE_MAX_MOUSE_MOVES,
+  ROGUE_MAX_CHEESE,
   hexCells,
   hexCube,
   hexNeighbors,
   squareCells,
+  squareEdges,
+  hexEdges,
+  edgeKey,
 };
 
 if (typeof globalThis !== "undefined") {
